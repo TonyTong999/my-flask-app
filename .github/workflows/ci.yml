@@ -33,7 +33,31 @@ jobs:
       run: |
         docker build -t my-flask-app:${{ github.sha }} .
 
-    # Optional deployment step (pseudo-deploy)
-    - name: Echo Deploy Step
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Tag and Push Docker Image to Amazon ECR
+      env:
+        REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        REPOSITORY: my-flask-app
+        IMAGE_TAG: ${{ github.sha }}
       run: |
-        echo "Deploying version ${{ github.sha }}"
+        docker tag my-flask-app:${{ github.sha }} $REGISTRY/$REPOSITORY:$IMAGE_TAG
+        docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+
+    - name: Deploy to ECS (Fargate)
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      with:
+        task-definition: task-definition.json
+        service: my-flask-service
+        cluster: my-flask-app-cluster
+        wait-for-service-stability: true
+        force-new-deployment: true
