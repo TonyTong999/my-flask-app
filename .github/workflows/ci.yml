@@ -51,7 +51,9 @@ jobs:
         IMAGE_TAG: ${{ github.sha }}
       run: |
         docker tag my-flask-app:${{ github.sha }} $REGISTRY/$REPOSITORY:$IMAGE_TAG
+        docker tag my-flask-app:${{ github.sha }} $REGISTRY/$REPOSITORY:latest 
         docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+        docker push $REGISTRY/$REPOSITORY:latest 
 
     - name: Deploy to ECS (Fargate)
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
